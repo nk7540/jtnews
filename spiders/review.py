@@ -1,48 +1,60 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from jtnews.items import Reviewer, Review
+import re
 
 
 class ReviewSpider(scrapy.Spider):
     name = 'review'
     allowed_domains = ['jtnews.jp']
     start_urls = [
-        'https://www.jtnews.jp/cgi-bin_o/revlist.cgi?PAGE_NO={}'.format(str(i))
-        for i in range(1, 2)
+        'https://www.jtnews.jp/cgi-bin_o/revrank.cgi?RANK_KIND=5&YEAR=1{}'
+        .format(str(1890 + i * 10)) for i in range(2)
     ]
 
     def parse(self, response):
         self.logger.info('A response from %s', response.url)
-        for tr in response.xpath('/html/body/table[2]/tr/td[2]/table[2]/tr/td/table/tr'):
+        for tr in response.xpath('/html/body/table[2]/tr/td[2]/table[1]/tr/td/table/tr'):
             if not tr.xpath('td'):
                 continue
-            reviewer = {}
-            reviewer['id'] = tr.xpath('th[1]/font/text()').extract()[0]
-            reviewer['name'] = tr.xpath('td[1]/a/text()').extract()[0]
-            reviewer['review_count'] = tr.xpath('td[2]/text()').extract()[0]
-            reviewer['last_reviewed_on'] = tr.xpath('td[3]/text()').extract()[0]
-            reviewer_url = response.urljoin(tr.xpath('td[1]/a/@href').extract()[0])
+            movie_url = response.urljoin(tr.xpath('td[1]/a/@href').extract()[0])
 
-            yield scrapy.Request(reviewer_url, callback=self.parse_reviewer,
-                                 meta={'reviewer':reviewer})
+            yield scrapy.Request(movie_url, callback=self.parse_review)
 
-    def parse_reviewer(self, response):
-        self.logger.info('Reviewer: %s', response.url)
-        reviewer = response.meta['reviewer']
-        fonts = response.xpath('/html/body/table[2]/tr/td[2]/table[1]/tr/td/table/tr/th/font')
+    def parse_review(self, response):
+        self.logger.info('Movie: %s', response.url)
+        fonts = response.xpath('/html/body/table[2]/tr/td[2]/font[@color="#000088"]')
+        title = response.xpath('/html/body/center[1]/table/tr[1]/td[1]/table/tr[1]/th/h1/a/text()').extract()[0]
         for font in fonts:
-            attr = font.xpath('text()').extract()[0]
-            text = font.xpath('../following-sibling::td[1]/text()')
-            if attr == '性別':
-                reviewer['gender'] = text.extract()[0].replace('\r\n', '')
-            elif attr == '年齢':
-                reviewer['age'] = text.extract()[0].replace('\r\n', '')
+            nodes = font.xpath('following-sibling::node()')
+            texts = nodes.extract()
+            review = Review()
+            review['reviewer_name'] = font.xpath('following-sibling::font[@color="BLUE"][1]/a/text()').extract()[0]
+            review['title'] = title
+            point_text = font.xpath('following-sibling::font[@color="GREEN"][1]/text()')
+            review['point'] = point_text.extract()[0].replace('点', '')
+            review['body'] = ''
+            has_br = True
+            for string in texts:
+                if 'color="RED"' in string:
+                    continue # ネタバレ
+                elif string == '<br>':
+                    has_br = True # 改行
+                elif not has_br:
+                    break # 文章の次に改行がなければbreak
+                else:
+                    review['body'] += string
+                    has_br = False
 
-        yield Reviewer(
-            id=reviewer.get('id'),
-            name=reviewer.get('name'),
-            gender=reviewer.get('gender', ''),
-            age=reviewer.get('age', ''),
-            review_count=reviewer.get('review_count'),
-            last_reviewed_on=reviewer.get('last_reviewed_on'),
-        )
+            reviewed_on_index = [i for i, x in enumerate(texts) if x.startswith('<font color="GREEN">')][0] + 1
+            review['reviewed_on'] = re.search('(\d+)-(\d+)-(\d+)', texts[reviewed_on_index]).group()
+            yield review
+
+        
+        # Request
+        xp = response.xpath('/html/body/table[2]/tr/td[2]/center[1]/table/tr/td')
+        xp = xp.xpath('table/tr[2]/th/following-sibling::td[1]/a/@href')
+        if not xp:
+            return
+        next_url = response.urljoin(xp.extract()[0])
+        yield scrapy.Request(next_url, callback=self.parse_review)

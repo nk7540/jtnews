@@ -17,6 +17,7 @@ class Reviewer(scrapy.Item):
 
 class Review(scrapy.Item):
     id = scrapy.Field()
+    reviewer_name = scrapy.Field()
     title = scrapy.Field()
     point = scrapy.Field()
     body = scrapy.Field()
