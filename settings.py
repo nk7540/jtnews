@@ -9,6 +9,8 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+import jtnews.config as config
+
 BOT_NAME = 'jtnews'
 
 SPIDER_MODULES = ['jtnews.spiders']
@@ -16,8 +18,7 @@ NEWSPIDER_MODULE = 'jtnews.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-# You can add your site url or email address
-USER_AGENT = 'CrawlingBot'
+USER_AGENT = "CrawlingBot ({})".format(config.USER['EMAIL'])
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -65,9 +66,9 @@ DOWNLOAD_DELAY = 3
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'jtnews.pipelines.JtnewsPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    'jtnews.pipelines.JtnewsPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from jtnews.items import Reviewer, Review
+from jtnews.items import Reviewer
 
 
-class JtnewsScraperSpider(scrapy.Spider):
-    name = 'jtnews_scraper'
+class ReviewerSpider(scrapy.Spider):
+    name = 'reviewer'
     allowed_domains = ['jtnews.jp']
     start_urls = [
         'https://www.jtnews.jp/cgi-bin_o/revlist.cgi?PAGE_NO={}'.format(str(i))
-        for i in range(1, 2)
+        for i in range(1, 3)
     ]
 
     def parse(self, response):
