@@ -28,6 +28,15 @@ class ReviewSpider(scrapy.Spider):
 
             yield scrapy.Request(movie_url, callback=self.parse_review)
 
+        # Request
+        b = response.xpath('/html/body/table[2]/tr/td[2]/div[2]/b')
+        href = b.xpath('following-sibling::a[1]/@href')
+        if not href:
+            return
+        next_url = response.urljoin(href.extract()[0])
+
+        yield scrapy.Request(next_url, callback=self.parse)
+
     def parse_review(self, response):
         self.request_count += 1
         if self.request_count % settings.REQUEST_COUNT_FOR_DELAY == 0:
