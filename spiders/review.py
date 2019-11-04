@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from jtnews.items import Reviewer, Review
+import jtnews.settings as settings
 import re
 
 
@@ -16,6 +17,10 @@ class ReviewSpider(scrapy.Spider):
         self.logger.info('A response from %s', response.url)
         for tr in response.xpath('/html/body/table[2]/tr/td[2]/table[1]/tr/td/table/tr'):
             if not tr.xpath('td'):
+                continue
+            review_count = tr.xpath('td[5]/font/text()').extract()[0].replace('人', '')
+            # reviewが多すぎるため、ある程度のreview数がないとskip
+            if int(review_count) < settings.MIN_REVIEW_COUNT:
                 continue
             movie_url = response.urljoin(tr.xpath('td[1]/a/@href').extract()[0])
 
