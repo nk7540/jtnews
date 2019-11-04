@@ -3,6 +3,7 @@ import scrapy
 from jtnews.items import Reviewer, Review
 import jtnews.settings as settings
 import re
+import time
 
 
 class ReviewSpider(scrapy.Spider):
@@ -12,6 +13,7 @@ class ReviewSpider(scrapy.Spider):
         'https://www.jtnews.jp/cgi-bin_o/revrank.cgi?RANK_KIND=5&YEAR=1{}'
         .format(str(1890 + i * 10)) for i in range(2)
     ]
+    request_count = 0
 
     def parse(self, response):
         self.logger.info('A response from %s', response.url)
@@ -27,6 +29,9 @@ class ReviewSpider(scrapy.Spider):
             yield scrapy.Request(movie_url, callback=self.parse_review)
 
     def parse_review(self, response):
+        self.request_count += 1
+        if self.request_count % settings.REQUEST_COUNT_FOR_DELAY == 0:
+            time.sleep(settings.REQUEST_DELAY)
         self.logger.info('Movie: %s', response.url)
         fonts = response.xpath('/html/body/table[2]/tr/td[2]/font[@color="#000088"]')
         title = response.xpath('/html/body/center[1]/table/tr[1]/td[1]/table/tr[1]/th/h1/a/text()').extract()[0]

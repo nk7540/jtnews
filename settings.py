@@ -95,3 +95,7 @@ FEED_EXPORT_ENCODING = 'utf-8'
 
 # 映画詳細を訪れる最低review数
 MIN_REVIEW_COUNT = 7
+# 一定数requestごとに待機する
+REQUEST_COUNT_FOR_DELAY = 100
+# 待機秒数
+REQUEST_DELAY = 20
