@@ -63,8 +63,9 @@ class ReviewSpider(scrapy.Spider):
         
         # Request
         xp = response.xpath('/html/body/table[2]/tr/td[2]/center[1]/table/tr/td')
-        xp = xp.xpath('table/tr[2]/th/following-sibling::td[1]/a/@href')
-        if not xp:
+        th = xp.xpath('table/tr/th/font[@color="red"]/..')
+        href = th.xpath('following-sibling::td[1]/a/@href') or th.xpath('../following-sibling::tr[1]/td[1]/a/@href')
+        if not href:
             return
-        next_url = response.urljoin(xp.extract()[0])
+        next_url = response.urljoin(href.extract()[0])
         yield scrapy.Request(next_url, callback=self.parse_review)
